@@ -14,8 +14,8 @@ const people = {
     },
     'mary': {
         loggedIn: true,
-        name: 'Mary',
-        needsProvided: []
+        name: 'Mary (editor)',
+        needsProvided: ['editors']
     },
     'admin': {
         loggedIn: true,
@@ -31,7 +31,7 @@ const people = {
 
 module.exports = {
     configureWebpack(cfg) {
-        cfg.resolve.alias['@oarepo/vue-composition-popup-login'] = path.join(__dirname, 'library/index.js')
+        cfg.resolve.alias['@oarepo/vue-composition-popup-login'] = path.join(__dirname, 'library/')
     },
     devServer: {
         https: true,
@@ -45,7 +45,7 @@ module.exports = {
                 const username = req.query.username
                 state.authState = people[username]
                 if (req.query.next) {
-                    res.redirect(res.query.next)
+                    res.redirect(req.query.next)
                 } else {
                     res.send(`
                         <html>
@@ -59,12 +59,7 @@ module.exports = {
                                     </div>
                                     <script>
                                         setTimeout(() => {
-                                            const bc = new BroadcastChannel('popup_login_channel');
-                                            bc.onmessage = (ev) => {
-                                                if (ev.type === 'close_failed') {
-                                                    alert('This window could not be closed, please close it yourself')
-                                                }
-                                            }
+                                            const bc = new BroadcastChannel('popup-login-channel');
                                             bc.postMessage({
                                                 type: "login",
                                                 status: "${state.authState.loggedIn ? 'success' : 'error'}",
@@ -73,7 +68,7 @@ module.exports = {
                                             setTimeout(() => {
                                                 alert('Could not send login data back to the application. Please close this window manually and reload the application')
                                             }, 5000)
-                                        }, 5000)
+                                        }, 2000)
                                     </script>
                                 </div>
                             </body>
@@ -81,8 +76,13 @@ module.exports = {
                 }
             })
             app.get('/auth/login', function (req, res) {
-                const next = req.query.next
-                const peopleLoginLinks = Object.entries(people).map(([login, rec]) => `<li><a href="${next}?username=${login}">${rec.name}</a></li>`)
+                let next = req.query.next
+                if (next.indexOf('?') > 0) {
+                    next += '&'
+                } else {
+                    next += '?'
+                }
+                const peopleLoginLinks = Object.entries(people).map(([login, rec]) => `<li><a href="${next}username=${login}">${rec.name}</a></li>`)
                 res.send(`
                     <html>
                         <body style="display: flex; justify-content: center;">
@@ -102,6 +102,12 @@ module.exports = {
                             </div>
                         </body>
                     </html>`)
+            })
+            app.get('/auth/logout', function (req, res) {
+                state.authState = {
+                    loggedIn: false
+                }
+                res.redirect('/')
             })
         }
     }

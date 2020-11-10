@@ -18,6 +18,9 @@
     "paths": {
       "@/*": [
         "src/*"
+      ],
+      "@oarepo/vue-composition-popup-login": [
+        "library/"
       ]
     },
     "lib": [
